@@ -1,4 +1,5 @@
 ﻿using AngleSharp;
+using AngleSharp.Dom;
 using webapi.Data;
 using webapi.Data.Models;
 using static webapi.Common.GlobalConstants;
@@ -59,6 +60,64 @@ namespace webapi.Services.Seeding
                 };
 
                 await _context.Operators.AddAsync(op);
+                await _context.SaveChangesAsync();
+
+                var weapons = new List<Weapon>();
+                var gadgets = new List<Gadget>();
+
+                var scrapeLoadOut = (IHtmlCollection<IElement> htmlCollection, LoadOutType loadOutType, string? weaponType = null) =>
+                {
+                    foreach (var item in htmlCollection)
+                    {
+                        var loadOutInfo = item.QuerySelectorAll("p");
+                        (string loadOutName, string loadOutCategory) = (loadOutInfo[0].TextContent, loadOutInfo[1].TextContent);
+                        string loadOutPhoto = item.QuerySelector("img")!.GetAttribute("src")!;
+
+                        if (loadOutType == LoadOutType.Weapon)
+                        {
+                            var existingWeapon = _context.Weapons.FirstOrDefault(w => w.Name == loadOutName);
+                            if (existingWeapon is null)
+                            {
+                                var weapon = new Weapon
+                                {
+                                    Name = loadOutName,
+                                    Category = loadOutCategory,
+                                    Photo = loadOutPhoto,
+                                    Type = weaponType!,
+                                };
+                                _context.Weapons.Add(weapon);
+                                weapons.Add(weapon);
+                            }
+                            else
+                            {
+                                weapons.Add(existingWeapon);
+                            }
+                        }
+                        else // gadget
+                        {
+                            var existingGadget = _context.Gadgets.FirstOrDefault(g => g.Name == loadOutName);
+                            if (existingGadget is null)
+                            {
+                                var gadget = new Gadget
+                                {
+                                    Name = loadOutName,
+                                    Photo = loadOutPhoto,
+                                };
+                                _context.Gadgets.Add(gadget);
+                                gadgets.Add(gadget);
+                            }
+                            else
+                            {
+                                gadgets.Add(existingGadget);
+                            }
+                        }
+                    }
+                };
+
+                scrapeLoadOut(loadOutItems[0].QuerySelectorAll(".operator__loadout__weapon"), LoadOutType.Weapon, "Primary");
+                scrapeLoadOut(loadOutItems[1].QuerySelectorAll(".operator__loadout__weapon"), LoadOutType.Weapon, "Secondary");
+                scrapeLoadOut(loadOutItems[2].QuerySelectorAll(".operator__loadout__weapon"), LoadOutType.Gadget);
+
                 await _context.SaveChangesAsync();
             }
         }
