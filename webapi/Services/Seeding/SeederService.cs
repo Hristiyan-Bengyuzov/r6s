@@ -119,6 +119,26 @@ namespace webapi.Services.Seeding
                 scrapeLoadOut(loadOutItems[2].QuerySelectorAll(".operator__loadout__weapon"), LoadOutType.Gadget);
 
                 await _context.SaveChangesAsync();
+
+                foreach (var weapon in weapons)
+                {
+                    await _context.OperatorWeapons.AddAsync(new OperatorWeapon
+                    {
+                        OperatorId = op.Id,
+                        WeaponId = weapon.Id
+                    });
+                }
+
+                foreach (var gadget in gadgets)
+                {
+                    await _context.OperatorGadgets.AddAsync(new OperatorGadget
+                    {
+                        OperatorId = op.Id,
+                        GadgetId = gadget.Id
+                    });
+                }
+
+                await _context.SaveChangesAsync();
             }
         }
 
